@@ -1,115 +1,5 @@
 
-# import gymnasium as gym
-# import numpy as np
-# import time
-# import matplotlib.pyplot as plt
-# import imageio  # For GIF creation
 
-# # Initialize Frozen Lake Environment
-# env = gym.make("FrozenLake-v1", desc=None, is_slippery=False, render_mode="rgb_array")
-
-# # Function to compute Manhattan Distance as heuristic
-# def get_manhattan_distance(state, goal, size):
-#     x1, y1 = divmod(state, size)
-#     x2, y2 = divmod(goal, size)
-#     return abs(x1 - x2) + abs(y1 - y2)
-
-# # Function to get possible moves from current state
-# def get_neighbors(state, size):
-#     row, col = divmod(state, size)
-#     neighbors = []
-#     actions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, Down, Left, Right
-
-#     for i, (dx, dy) in enumerate(actions):
-#         new_row, new_col = row + dx, col + dy
-#         if 0 <= new_row < size and 0 <= new_col < size:
-#             neighbors.append((i, new_row * size + new_col))  # (Action, New State)
-    
-#     return neighbors
-
-# # IDA* Algorithm Implementation
-# def ida_star(env, start, goal):
-#     size = int(np.sqrt(env.observation_space.n))  # Get grid size (e.g., 4x4)
-#     path_taken = []  # Store path for visualization
-
-#     def search(node, g, threshold, path):
-#         f = g + get_manhattan_distance(node, goal, size)
-#         if f > threshold:
-#             return f
-        
-#         if node == goal:
-#             return "FOUND"
-        
-#         min_cost = float("inf")
-#         for action, neighbor in get_neighbors(node, size):
-#             if neighbor in path:  # Avoid loops
-#                 continue
-#             path.add(neighbor)
-#             path_taken.append((action, neighbor))  # Save (action, state) for visualization
-#             temp = search(neighbor, g + 1, threshold, path)
-#             if temp == "FOUND":
-#                 return "FOUND"
-#             if temp < min_cost:
-#                 min_cost = temp
-#             path.remove(neighbor)
-        
-#         return min_cost
-
-#     # Iterative deepening loop
-#     threshold = get_manhattan_distance(start, goal, size)
-#     while True:
-#         path = {start}
-#         path_taken.clear()
-#         path_taken.append((None, start))  # Start with None action
-#         result = search(start, 0, threshold, path)
-#         if result == "FOUND":
-#             return "Path found", path_taken
-#         if result == float("inf"):
-#             return "No path found", []
-#         threshold = result  # Increase threshold
-
-# # Get Start and Goal Positions
-# start_state = 0  # 'S' is at index 0 in a 4x4 Frozen Lake
-# goal_state = env.observation_space.n - 1  # 'G' is at the last index
-
-# # Run IDA* and Get Path
-# result, path_taken = ida_star(env, start_state, goal_state)
-# print("Result:", result)
-
-# # Generate and Save GIF with Proper Movements
-# frames = []
-# env.reset()
-
-# # Reset the environment for visualization
-# obs, _ = env.reset()
-# frames.append(env.render())  # Capture initial frame
-
-# for action, state in path_taken[1:]:  # Skip the start state
-#     obs, _, _, _, _ = env.step(action)  # Step with the chosen action
-#     frames.append(env.render())  # Capture frame after action
-
-# # Save the GIF
-# imageio.mimsave("ida_star_frozenlake.gif", frames, duration=0.5)
-# print("GIF saved as 'ida_star_frozenlake.gif'")
-
-# # Measure Execution Time for Multiple Runs
-# runs = 5
-# times = []
-
-# for _ in range(runs):
-#     start_time = time.perf_counter()
-#     result, _ = ida_star(env, start_state, goal_state)
-#     end_time = time.perf_counter()
-#     times.append(end_time - start_time)
-
-# print("Average Execution Time:", np.mean(times))
-
-# # Plot Execution Time
-# plt.plot(range(1, runs + 1), times, marker='o', linestyle='-')
-# plt.xlabel("Run Number")
-# plt.ylabel("Execution Time (seconds)")
-# plt.title("IDA* Execution Time on Frozen Lake")
-# plt.show()
 import time
 import os
 import gymnasium as gym
@@ -132,10 +22,15 @@ def ida_star(env, max_time=600):
     env.reset()
     goal_state = env.observation_space.n - 1
     
+    search_history = []  # Stores all visited states (for GIF)
+
     def search(path, g, limit, start_time):
         current_state = path[-1]
         f = g + heuristic(current_state)
         
+        # Track every move the agent makes
+        search_history.append(current_state)
+
         # Timeout check
         if time.time() - start_time > max_time:
             return float('inf'), None
@@ -176,22 +71,22 @@ def ida_star(env, max_time=600):
         
         if found_path is not None:
             execution_time = time.time() - start_time
-            return found_path, len(found_path)-1, execution_time, True
-            
+            return found_path, len(found_path)-1, execution_time, True, search_history
+        
         if res == float('inf'):
             break  # No solution exists
             
         limit = res  # Update threshold for next iteration
 
     execution_time = time.time() - start_time
-    return None, float('inf'), execution_time, False
+    return None, float('inf'), execution_time, False, search_history
 
-# Function to create and save a GIF of the best path execution
-def generate_gif(env, path, filename="ida_star_frozenlake_8x8.gif"):
+# Function to create and save a GIF of the full search process
+def generate_gif(env, visited_states, filename="ida_star_full_search.gif"):
     frames = []
     env.reset()
 
-    for state in path:
+    for state in visited_states:
         env.s = state  # Set the environment to the current state
         frames.append(env.render())  # Capture frame
 
@@ -199,7 +94,7 @@ def generate_gif(env, path, filename="ida_star_frozenlake_8x8.gif"):
 
     # Save GIF in the current directory
     save_path = os.path.join(os.getcwd(), filename)
-    imageio.mimsave(save_path, frames, duration=0.5)
+    imageio.mimsave(save_path, frames, duration=0.2)  # Faster playback
     print(f" GIF saved at: {save_path}")
     return save_path
 
@@ -209,11 +104,14 @@ ida_execution_times = []
 ida_successful_runs = 0
 ida_best_path = None
 ida_best_cost = float('inf')
+all_visited_states = []  # Store all visited states for GIF
 
 for i in range(num_runs):
     print(f"IDA* Run {i+1}:")
-    path, cost, exec_time, reached_goal = ida_star(env)
+    path, cost, exec_time, reached_goal, visited_states = ida_star(env)
     
+    all_visited_states.extend(visited_states)  # Collect all visited states
+
     if reached_goal:
         ida_successful_runs += 1
         ida_execution_times.append(exec_time)
@@ -234,9 +132,9 @@ if ida_successful_runs > 0:
 else:
     print("No successful runs, unable to compute average execution time.")
 
-# Generate IDA* GIF
-if ida_best_path:
-    gif_path = generate_gif(env, ida_best_path)
+# Generate IDA* GIF (all explored paths)
+if all_visited_states:
+    gif_path = generate_gif(env, all_visited_states)
 
 # Plotting execution times
 if ida_successful_runs > 0:
@@ -249,4 +147,3 @@ if ida_successful_runs > 0:
     plt.show()
 else:
     print("No successful runs to plot.")
-
