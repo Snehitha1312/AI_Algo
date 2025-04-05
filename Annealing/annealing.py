@@ -1,5 +1,5 @@
 import numpy as np
-from tsp_env import TSPEnv  # make sure tsp_env.py is in the same directory
+from tsp_env import TSPEnv
 import matplotlib.pyplot as plt
 import shutil
 import imageio
@@ -16,22 +16,34 @@ def total_distance(locations, tour):
     return dist
 
 
-def plot_and_save_tour(locations, tour, filename):
+def plot_and_save_tour(locations, current_tour, best_tour, filename, current_distance, best_distance, iteration):
     plt.figure(figsize=(6, 5))
-    x = [locations[i][0] for i in tour + [tour[0]]]
-    y = [locations[i][1] for i in tour + [tour[0]]]
-    plt.plot(x, y, 'o-', color='blue', markerfacecolor='red')
-    for i, node in enumerate(tour):
-        plt.text(locations[node][0], locations[node][1], str(node), fontsize=8, ha='right')
-    plt.title("TSP Tour (Progress)")
+
+    # Plot current tour in light gray
+    x_current = [locations[i][0] for i in current_tour + [current_tour[0]]]
+    y_current = [locations[i][1] for i in current_tour + [current_tour[0]]]
+    plt.plot(x_current, y_current, 'o-', color='lightgray', alpha=0.5, label='Current Tour')
+
+    # Plot best tour in blue
+    x_best = [locations[i][0] for i in best_tour + [best_tour[0]]]
+    y_best = [locations[i][1] for i in best_tour + [best_tour[0]]]
+    plt.plot(x_best, y_best, 'o-', color='blue', markerfacecolor='red', label='Best Tour')
+
+    # Node labels
+    for i, node in enumerate(best_tour):
+        plt.text(locations[node][0], locations[node][1], str(node), fontsize=7, ha='right')
+
+    plt.title(f"TSP Tour (Iter {iteration})\nBest Dist: {best_distance:.2f} | Current: {current_distance:.2f}")
     plt.xlabel("X")
     plt.ylabel("Y")
+    plt.legend(loc="upper right")
     plt.grid(True)
+    plt.tight_layout()
     plt.savefig(filename)
     plt.close()
 
 
-def simulated_annealing(env: TSPEnv, max_iterations=500, initial_temp=1000, cooling_rate=0.995):
+def simulated_annealing(env: TSPEnv, max_iterations=1000, initial_temp=1000, cooling_rate=0.995, frame_dir="temp_plots"):
     state = env.reset()
     locations = state[0, :, :2]
     num_nodes = locations.shape[0]
@@ -46,6 +58,8 @@ def simulated_annealing(env: TSPEnv, max_iterations=500, initial_temp=1000, cool
     temp = initial_temp
     distances = []
     gif_frames = []
+
+    os.makedirs(frame_dir, exist_ok=True)
 
     for iteration in range(max_iterations):
         i, j = np.random.choice(num_nodes, 2, replace=False)
@@ -65,32 +79,15 @@ def simulated_annealing(env: TSPEnv, max_iterations=500, initial_temp=1000, cool
         temp *= cooling_rate
         distances.append(best_distance)
 
-        if iteration % 20 == 0 or iteration == max_iterations - 1:
-            filename = f"frame_{iteration}.png"
-            plot_and_save_tour(locations, best_solution, filename)
+        # Save frames more frequently
+        if iteration % 10 == 0 or iteration == max_iterations - 1:
+            filename = os.path.join(frame_dir, f"frame_{iteration:04d}.png")
+            plot_and_save_tour(locations, current_solution, best_solution, filename, current_distance, best_distance, iteration)
             gif_frames.append(imageio.imread(filename))
 
-    imageio.mimsave("tsp_sa_progress.gif", gif_frames, fps=5)
-
-    for file in os.listdir():
-        if file.startswith("frame_") and file.endswith(".png"):
-            os.remove(file)
+    imageio.mimsave("tsp_sa_progress.gif", gif_frames, fps=10)
 
     return best_solution, best_distance, distances, locations
-
-
-def visualize_tour(locations, tour, title="TSP Tour"):
-    plt.figure(figsize=(8, 6))
-    x = [locations[i][0] for i in tour + [tour[0]]]
-    y = [locations[i][1] for i in tour + [tour[0]]]
-    plt.plot(x, y, 'o-', color='blue', markerfacecolor='red')
-    for i, node in enumerate(tour):
-        plt.text(locations[node][0], locations[node][1], str(node), fontsize=9, ha='right')
-    plt.title(title)
-    plt.xlabel("X")
-    plt.ylabel("Y")
-    plt.grid(True)
-    plt.show()
 
 
 if __name__ == "__main__":
@@ -100,7 +97,7 @@ if __name__ == "__main__":
 
     for run in range(num_runs):
         print(f"\n--- Run {run + 1} ---")
-        env = TSPEnv(num_nodes=20, batch_size=1, num_draw=1)
+        env = TSPEnv(num_nodes=30, batch_size=1, num_draw=1)  # Increased complexity with 30 nodes
 
         start_time = time.time()
         best_tour, best_dist, dist_progression, coords = simulated_annealing(env)
@@ -114,7 +111,7 @@ if __name__ == "__main__":
         print(f"Best distance: {best_dist:.2f}")
         print(f"Time taken: {run_duration:.2f} seconds")
 
-    # Plot the best distance for each run
+    # Plot time taken for each run
     plt.figure(figsize=(8, 5))
     plt.bar(range(1, num_runs + 1), run_times, color='skyblue')
     plt.axhline(np.mean(run_times), color='red', linestyle='--', label=f'Average: {np.mean(run_times):.2f}s')
@@ -128,5 +125,5 @@ if __name__ == "__main__":
 
     print("\nGIF saved as tsp_sa_progress.gif")
 
-
+    # Cleanup
     shutil.rmtree('temp_plots', ignore_errors=True)
