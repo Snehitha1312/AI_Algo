@@ -5,7 +5,7 @@ from gym import Env
 from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
 from graph.vrp_network import VRPNetwork
-from .common import ObsType
+from common import ObsType
 
 
 class TSPEnv(Env):
@@ -24,7 +24,7 @@ class TSPEnv(Env):
 
     metadata = {"render.modes": ["human", "rgb_array"]}
 
-    def __init__(
+    def _init_(
         self,
         num_nodes: int = 20,
         batch_size: int = 128,

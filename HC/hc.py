@@ -1,94 +1,134 @@
 import numpy as np
-import time
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
+from tsp_env import TSPEnv
 import matplotlib.pyplot as plt
+import shutil
 import imageio
-from pathlib import Path
-from tqdm import tqdm
-from HC.tsp_env import TSPEnv  # Adjust path as needed
+import os
+import time
 
 
-def hill_climbing_tsp(env, timeout=600, render_gif=False, gif_path="hill_climbing.gif"):
-    obs = env.reset()
-    start_time = time.time()
-
-    total_reward = 0
-    frames = []
-
-    current_node = env.depots[0][0]
-    unvisited = set(range(env.num_nodes)) - {current_node}
-    tour = [current_node]
-
-    while unvisited and (time.time() - start_time) < timeout:
-        neighbors = list(unvisited)
-        np.random.shuffle(neighbors)
-
-        best_move = None
-        best_reward = float('-inf')
-
-        for next_node in neighbors:
-            action = np.array([[next_node]])
-            _, reward, done, _ = env.step(action)
-            if reward[0] > best_reward:
-                best_reward = reward[0]
-                best_move = next_node
-
-        if best_move is not None:
-            tour.append(best_move)
-            unvisited.remove(best_move)
-            action = np.array([[best_move]])
-            obs, reward, done, _ = env.step(action)
-            total_reward += reward[0]
-
-            if render_gif:
-                frame = env.render(mode="rgb_array")
-                frames.append(frame)
-        else:
-            break
-
-    if render_gif and frames:
-        imageio.mimsave(gif_path, frames, fps=1)
-
-    time_taken = time.time() - start_time
-    return time_taken, total_reward, tour
+def total_distance(locations, tour):
+    dist = 0
+    for i in range(len(tour)):
+        from_node = locations[tour[i]]
+        to_node = locations[tour[(i + 1) % len(tour)]]
+        dist += np.linalg.norm(from_node - to_node)
+    return dist
 
 
-def run_experiments(num_runs=5, timeout=600):
-    times = []
-    rewards = []
-    best_paths = []
+def plot_and_save_tour(locations, current_tour, best_tour, filename, current_distance, best_distance, iteration):
+    plt.figure(figsize=(6, 5))
 
-    for i in range(num_runs):
-        print(f"--- Run {i+1} ---")
-        env = TSPEnv(num_nodes=20, batch_size=1, num_draw=1)
-        gif_path = f"gifs/hc_run_{i+1}.gif"
-        t, reward, path = hill_climbing_tsp(env, timeout=timeout, render_gif=True, gif_path=gif_path)
-        print(f"Time: {t:.2f}s | Reward: {reward:.2f} | Path: {path}")
+    x_current = [locations[i][0] for i in current_tour + [current_tour[0]]]
+    y_current = [locations[i][1] for i in current_tour + [current_tour[0]]]
+    plt.plot(x_current, y_current, 'o-', color='lightgray', alpha=0.5, label='Current Tour')
 
-        times.append(t)
-        rewards.append(reward)
-        best_paths.append(path)
+    x_best = [locations[i][0] for i in best_tour + [best_tour[0]]]
+    y_best = [locations[i][1] for i in best_tour + [best_tour[0]]]
+    plt.plot(x_best, y_best, 'o-', color='green', markerfacecolor='red', label='Best Tour')
 
-    avg_time = np.mean(times)
+    for i, node in enumerate(best_tour):
+        plt.text(locations[node][0], locations[node][1], str(node), fontsize=7, ha='right')
 
-    # Plot timing
-    plt.figure(figsize=(8, 4))
-    plt.plot(range(1, num_runs + 1), times, marker='o', label='Run Time')
-    plt.axhline(avg_time, color='r', linestyle='--', label=f'Avg Time: {avg_time:.2f}s')
-    plt.title("Time to Reach Optimum in Hill Climbing (TSP)")
-    plt.xlabel("Run")
-    plt.ylabel("Time (seconds)")
-    plt.legend()
-    plt.grid()
+    plt.title(f"Hill Climbing (Iter {iteration})\nBest Dist: {best_distance:.2f} | Current: {current_distance:.2f}")
+    plt.xlabel("X")
+    plt.ylabel("Y")
+    plt.legend(loc="upper right")
+    plt.grid(True)
     plt.tight_layout()
-    plt.savefig("hill_climbing_times.png")
+    plt.savefig(filename)
     plt.close()
 
-    print(f"\nAverage Time Taken: {avg_time:.2f}s")
-    return times, rewards, best_paths
+
+def hill_climbing(env: TSPEnv, max_iterations=1000, frame_dir="temp_plots_hc"):
+    state = env.reset()
+    locations = state[0, :, :2]
+    num_nodes = locations.shape[0]
+
+    current_solution = list(range(num_nodes))
+    np.random.shuffle(current_solution)
+    current_distance = total_distance(locations, current_solution)
+
+    best_solution = current_solution.copy()
+    best_distance = current_distance
+
+    distances = []
+    gif_frames = []
+
+    os.makedirs(frame_dir, exist_ok=True)
+
+    for iteration in range(max_iterations):
+        improved = False
+
+        for _ in range(100):  # Try 100 random neighbors
+            i, j = np.random.choice(num_nodes, 2, replace=False)
+            new_solution = current_solution.copy()
+            new_solution[i], new_solution[j] = new_solution[j], new_solution[i]
+            new_distance = total_distance(locations, new_solution)
+
+            if new_distance < current_distance:
+                current_solution = new_solution
+                current_distance = new_distance
+                improved = True
+
+                if current_distance < best_distance:
+                    best_solution = current_solution.copy()
+                    best_distance = current_distance
+
+                break  # Accept the first improving move (steepest ascent variant)
+
+        if not improved:
+            break  # No improvement, local maximum reached
+
+        distances.append(best_distance)
+
+        if iteration % 10 == 0 or iteration == max_iterations - 1:
+            filename = os.path.join(frame_dir, f"frame_{iteration:04d}.png")
+            plot_and_save_tour(locations, current_solution, best_solution, filename, current_distance, best_distance, iteration)
+            gif_frames.append(imageio.imread(filename))
+
+    imageio.mimsave("tsp_hc_progress.gif", gif_frames, fps=10)
+
+    return best_solution, best_distance, distances, locations
 
 
 if __name__ == "__main__":
-    Path("gifs").mkdir(exist_ok=True)
-    run_experiments()
+    num_runs = 5
+    run_times = []
+    all_best_distances = []
+
+    for run in range(num_runs):
+        print(f"\n--- Hill Climbing Run {run + 1} ---")
+        #env = TSPEnv(num_nodes=30, batch_size=1, num_draw=1)
+        env = TSPEnv()
+        env.num_nodes = 30
+        env.batch_size = 1
+        env.num_draw = 1  # Optional, if your version uses this
+        best_tour, best_dist, dist_progression, coords = hill_climbing(env)
+        start_time = time.time()
+        best_tour, best_dist, dist_progression, coords = hill_climbing(env)
+        end_time = time.time()
+
+        run_duration = end_time - start_time
+        run_times.append(run_duration)
+        all_best_distances.append(best_dist)
+
+        print(f"Best tour: {best_tour}")
+        print(f"Best distance: {best_dist:.2f}")
+        print(f"Time taken: {run_duration:.2f} seconds")
+
+    plt.figure(figsize=(8, 5))
+    plt.bar(range(1, num_runs + 1), run_times, color='lightgreen')
+    plt.axhline(np.mean(run_times), color='red', linestyle='--', label=f'Average: {np.mean(run_times):.2f}s')
+    plt.title("Hill Climbing - Time Taken for Each Run")
+    plt.xlabel("Run")
+    plt.ylabel("Time (seconds)")
+    plt.xticks(range(1, num_runs + 1))
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    print("\nGIF saved as tsp_hc_progress.gif")
+
+    # Cleanup
+    shutil.rmtree('temp_plots_hc', ignore_errors=True)
