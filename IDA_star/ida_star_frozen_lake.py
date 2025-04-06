@@ -1,5 +1,3 @@
-
-
 import time
 import os
 import gymnasium as gym
@@ -81,12 +79,12 @@ def ida_star(env, max_time=600):
     execution_time = time.time() - start_time
     return None, float('inf'), execution_time, False, search_history
 
-# Function to create and save a GIF of the full search process
-def generate_gif(env, visited_states, filename="ida_star_full_search.gif"):
+# Function to create and save a GIF of the best path only
+def generate_best_path_gif(env, best_path_states, filename="ida_star_best_path.gif"):
     frames = []
     env.reset()
 
-    for state in visited_states:
+    for state in best_path_states:
         env.s = state  # Set the environment to the current state
         frames.append(env.render())  # Capture frame
 
@@ -94,8 +92,8 @@ def generate_gif(env, visited_states, filename="ida_star_full_search.gif"):
 
     # Save GIF in the current directory
     save_path = os.path.join(os.getcwd(), filename)
-    imageio.mimsave(save_path, frames, duration=0.2)  # Faster playback
-    print(f" GIF saved at: {save_path}")
+    imageio.mimsave(save_path, frames, duration=0.5)  # Slower playback for clarity
+    print(f"GIF saved at: {save_path}")
     return save_path
 
 # Run IDA* multiple times (same structure as BnB)
@@ -104,14 +102,11 @@ ida_execution_times = []
 ida_successful_runs = 0
 ida_best_path = None
 ida_best_cost = float('inf')
-all_visited_states = []  # Store all visited states for GIF
 
 for i in range(num_runs):
     print(f"IDA* Run {i+1}:")
     path, cost, exec_time, reached_goal, visited_states = ida_star(env)
     
-    all_visited_states.extend(visited_states)  # Collect all visited states
-
     if reached_goal:
         ida_successful_runs += 1
         ida_execution_times.append(exec_time)
@@ -122,8 +117,10 @@ for i in range(num_runs):
         if cost < ida_best_cost:
             ida_best_cost = cost
             ida_best_path = path
-    else:
-        print("  IDA* failed to reach the goal.\n")
+
+# Generate IDA* GIF (best path only)
+if ida_best_path:
+    gif_path = generate_best_path_gif(env, ida_best_path)
 
 # Compute average execution time
 if ida_successful_runs > 0:
@@ -131,10 +128,6 @@ if ida_successful_runs > 0:
     print(f"Average Execution Time: {avg_time:.4f} seconds")
 else:
     print("No successful runs, unable to compute average execution time.")
-
-# Generate IDA* GIF (all explored paths)
-if all_visited_states:
-    gif_path = generate_gif(env, all_visited_states)
 
 # Plotting execution times
 if ida_successful_runs > 0:
