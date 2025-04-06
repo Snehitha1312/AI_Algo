@@ -1,8 +1,8 @@
-## Instructions
+# Instructions
 
 Clone the repository https://github.com/Snehitha1312/AI_Algo/
 
-# For DFS Branch and Bound:
+## For DFS Branch and Bound:
 
 Go to the directory cd/AI_Algo/BnB and create a virtual environment by running the command frozenlake_env/Scripts/activate
 
@@ -12,7 +12,7 @@ If there is an error with the requirements then run,
 
 pip install -r requirements.txt
 
-# For IDA*:
+## For IDA*:
 Go to the directory
 
 cd/AI_Algo/IDA_star
@@ -26,7 +26,7 @@ run python ida_star_frozen_lake.py
 If there is an error with the requirements then run,
 pip install -r requirements.txt
 
-# For Hill Climbing:
+## For Hill Climbing:
 
 Go to the directory cd/AI_Algo/HC and create a virtual environment by running the command venv/Scripts/activate
 
@@ -35,7 +35,7 @@ run python hc.py
 If there is an error with the requirements then run,
 pip install -r requirements.txt
 
-# For Simmulated Annealing:
+## For Simmulated Annealing:
 
 Go to the directory cd/AI_Algo/Annealing and create a virtual environment by running the command frozenlake_env/Scripts/activate
 
