@@ -6,7 +6,7 @@ Clone the repository https://github.com/Snehitha1312/AI_Algo/
 
 Go to the directory cd/AI_Algo/BnB and create a virtual environment by running the command frozenlake_env/Scripts/activate
 
-Next, run python Frozenlake_BB.py
+Next, run ```python Frozenlake_BB.py```
 
 If there is an error with the requirements then run,
 
