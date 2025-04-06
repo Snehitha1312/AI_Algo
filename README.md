@@ -75,7 +75,7 @@ If there is an error with the requirements then run,
 
 ```pip install -r requirements.txt```
 
-If at atll you come accross an error stating the environemnt is broken please create a new environment by running the command:
+If at all you come accross an error stating the environemnt is broken please create a new environment by running the command:
 
 ```python -m venv venv```
 
