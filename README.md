@@ -10,7 +10,7 @@ Next, run python Frozenlake_BB.py
 
 If there is an error with the requirements then run,
 pip install -r requirements.txt
-
+```bash
 For IDA*:
 Go to the directory cd/AI_Algo/IDA_star and create a virtual environment by running the command venv/Scripts/activate
 
