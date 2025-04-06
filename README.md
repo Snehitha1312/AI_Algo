@@ -2,7 +2,7 @@
 
 Clone the repository 
 
-```https://github.com/Snehitha1312/AI_Algo/```
+```git clone https://github.com/Snehitha1312/AI_Algo/```
 
 ## For DFS Branch and Bound:
 
