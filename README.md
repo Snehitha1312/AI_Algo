@@ -11,6 +11,7 @@ Next, run python Frozenlake_BB.py
 If there is an error with the requirements then run,
 ```bash
 pip install -r requirements.txt
+bash```
 
 For IDA*:
 Go to the directory
