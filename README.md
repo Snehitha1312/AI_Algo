@@ -31,7 +31,7 @@ Go to the directory
 
  ```venv/Scripts/activate```
 
-run 
+Next, run 
 
 ```python ida_star_frozen_lake.py```
 
@@ -49,7 +49,7 @@ create a virtual environment by running the command
 
 ```venv/Scripts/activate```
 
-run 
+Next, run 
 
 ```python hc.py```
 
@@ -59,13 +59,15 @@ If there is an error with the requirements then run,
 
 ## For Simmulated Annealing:
 
-Go to the directory ```cd/AI_Algo/Annealing``` 
+Go to the directory 
+
+```cd/AI_Algo/Annealing``` 
 
 create a virtual environment by running the command 
 
 ```frozenlake_env/Scripts/activate```
 
-run 
+Next, run 
 
 ```python annealing.py```
 
@@ -75,6 +77,6 @@ If there is an error with the requirements then run,
 
 If at atll you come accross an error stating the environemnt is broken please create a new environment by running the command:
 
-python -m venv venv
+```python -m venv venv```
 
 
